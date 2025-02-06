@@ -1,16 +1,17 @@
 import numpy as np
 from VNSC import VoxelNystromSC
 import mahotas
-import gdal
+from osgeo import gdal
 import gc
 import os
 
 ####################################### CHM local maximum #######################
-def localmaxima(img,d,ws): 
+def localmaxima(img,d,ws):
+    #
     threshed=(img>ws)
     img *=threshed 
-    bc=np.ones((int(ws/d),int(ws/d))) 
-    maxima=mahotas.morph.regmax(img,Bc=bc) 
+    bc=np.ones((int(ws/d), int(ws/d)))
+    maxima=mahotas.morph.regmax(img, Bc=bc)  # get local max using a box bc
     spots,n_spots=mahotas.label(maxima)
     return n_spots
     
@@ -27,11 +28,11 @@ for root,dirs,files in os.walk(path):
             break  
     for file in files:
         if os.path.splitext(file)[1]=='.txt':
-            print('Start:',file)
+            print('Start:', file)
             X=np.loadtxt(file)
             Z=X[:,2]
             id0=[]
-            for ii in range(0,len(Z)):
+            for ii in range(0, len(Z)):
                 if Z[ii]>2.5:
                    id0.extend([ii])
             X=X[id0,:]
@@ -43,10 +44,12 @@ for root,dirs,files in os.walk(path):
             im_height=img.RasterYSize 
             im_geotrans=img.GetGeoTransform() 
             x0=im_geotrans[0]  
-            y1=im_geotrans[3] 
-            d=im_geotrans[1]  
+            y1=im_geotrans[3]  # upper left coordinates
+            d=im_geotrans[1]  # pixel size
+
+            # get the size of image: number of rows/columns
             xi=int((X[np.lexsort([X[:,0]])[0],0]-x0)/d)  
-            xj=int((X[np.lexsort([-X[:,0]])[0],0]-x0)/d)  
+            xj=int((X[np.lexsort([-X[:,0]])[0],0]-x0)/d)
             dx=xj-xi                                     
             yi=int((y1-X[np.lexsort([X[:,1]])[0],1])/d)
             yj=int((y1-X[np.lexsort([-X[:,1]])[0],1])/d) 
@@ -62,5 +65,6 @@ for root,dirs,files in os.walk(path):
             
             gap=nmax*1.5
             XX=X[:,:3]       
-            VoxelNystromSC(XX,file.split('.')[0],int(gap),path)  
-
+            VoxelNystromSC(XX, file.split('.')[0], int(gap), path)
+            # input: XX is the xyz coordinate of all points;
+            status = 0
